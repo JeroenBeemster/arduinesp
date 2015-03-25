@@ -1,0 +1,7 @@
+esptool.name=ESPtool
+esptool.communication=serial
+esptool.protocol=stk500v1
+esptool.program.protocol=stk500v1
+esptool.program.tool=esptool
+esptool.program.extra_params=-P{serial.port}
+

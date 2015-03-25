@@ -1,0 +1,108 @@
+
+# Arduino ESP8266 Core and platform.
+# ------------------------------
+
+# For more info:
+# https://github.com/arduino/Arduino/wiki/Arduino-IDE-1.5---3rd-party-Hardware-specification
+
+name=ESP8266 
+version=0.9.5
+
+# ESP8266 compile variables
+# --------------------- 
+
+ 
+# Default "compiler.path" is correct, change only if you want to overidde the initial value
+compiler.path={runtime.ide.path}/hardware/arduino/esp8266/tools/xtensa-lx106-elf/bin/
+
+compiler.c.cmd=xtensa-lx106-elf-gcc
+compiler.c.flags=-Os -g -O2 -Wpointer-arith -Wundef -Werror -Wl,-EL -fno-inline-functions -nostdlib -mlongcalls -mtext-section-literals -D__ets__ "-I{runtime.ide.path}/hardware/arduino/esp8266/tools/esp_iot_sdk_v0.9.5/include" "-I{runtime.ide.path}/hardware/arduino/esp8266/tools/esp_iot_sdk_v0.9.5/include/json" -Idriver -Iuser -Idriver/include -Iuser/include -Iinclude
+compiler.c.elf.flags="-L{runtime.ide.path}/hardware/arduino/esp8266/tools/esp_iot_sdk_v0.9.5/lib" "-T{runtime.ide.path}/hardware/arduino/esp8266/tools/esp_iot_sdk_v0.9.5/ld/eagle.app.v6.ld" -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static -Wl,--start-group -lc -lgcc -lhal -lpp -lphy -lnet80211 -llwip -lat -lwpa -lmain -ljson -lupgrade -lssl "{build.path}/{archive_file}" -Wl,--end-group 
+#compiler.c.elf.flags="-L{runtime.ide.path}/hardware/arduino/esp8266/tools/esp_iot_sdk_v0.9.5/lib" "-T{runtime.ide.path}/hardware/arduino/esp8266/tools/esp_iot_sdk_v0.9.5/ld/eagle.app.v6.ld" -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static -Wl,--start-group -lc -lgcc -lhal -lpp -lphy -lnet80211 -llwip -lat -lwpa -lmain -ljson -lupgrade -lssl "{build.path}/{archive_file}" -Wl,--end-group 
+#compiler.c.elf.cmd=xtensa-lx106-elf-gcc
+compiler.c.elf.cmd=xtensa-lx106-elf-g++
+
+compiler.S.flags=-c -g -x assembler-with-cpp
+compiler.cpp.cmd=xtensa-lx106-elf-g++
+compiler.cpp.flags=-c -Os -g -O2 -Wpointer-arith -Wundef -Werror -Wl,-EL -fno-inline-functions -nostdlib -mlongcalls -mtext-section-literals -D__ets__ -DICACHE_FLASH "-I{runtime.ide.path}/hardware/arduino/esp8266/tools/esp_iot_sdk_v0.9.5/include" "-I{runtime.ide.path}/hardware/arduino/esp8266/tools/esp_iot_sdk_v0.9.5/include/json" -Idriver -Iuser -Idriver/include -Iuser/include -Iinclude
+
+compiler.ar.cmd=xtensa-lx106-elf-ar
+compiler.ar.flags=cru
+
+compiler.objcopy.cmd={runtime.ide.path}/hardware/arduino/esp8266/tools/esptool.exe
+compiler.objcopy.eep.flags=-bs .text -bs .data -bs .rodata -bc -ec
+
+compiler.elf2hex.flags=-ec
+compiler.elf2hex.cmd={runtime.ide.path}/hardware/arduino/esp8266/tools/esptool.exe
+compiler.ldflags=
+compiler.size.cmd=xtensa-lx106-elf-size
+
+# This can be overriden in boards.txt
+build.extra_flags=
+
+# These can be overridden in platform.local.txt
+compiler.c.extra_flags=
+compiler.c.elf.extra_flags=
+compiler.S.extra_flags=
+compiler.cpp.extra_flags=
+compiler.ar.extra_flags=
+compiler.objcopy.eep.extra_flags=
+compiler.elf2hex.extra_flags=
+
+# AVR compile patterns
+# --------------------
+
+## Compile c files
+recipe.c.o.pattern="{compiler.path}{compiler.c.cmd}" {compiler.c.flags} {compiler.c.extra_flags} {build.extra_flags} {includes} -DICACHE_FLASH -c "{source_file}" -o "{object_file}"
+
+## Compile c++ files
+recipe.cpp.o.pattern="{compiler.path}{compiler.cpp.cmd}" {compiler.cpp.flags} {compiler.cpp.extra_flags} {build.extra_flags} {includes} "{source_file}" -o "{object_file}"
+
+## Compile S files
+recipe.S.o.pattern="{compiler.path}{compiler.c.cmd}" {compiler.S.flags} -mmcu={build.mcu} -DF_CPU={build.f_cpu} -DARDUINO={runtime.ide.version} -DARDUINO_{build.board} -DARDUINO_ARCH_{build.arch} {compiler.S.extra_flags} {build.extra_flags} {includes} "{source_file}" -o "{object_file}"
+
+## Create archives
+recipe.ar.pattern="{compiler.path}{compiler.ar.cmd}" {compiler.ar.flags} {compiler.ar.extra_flags} "{build.path}/{archive_file}" "{object_file}"
+
+## Combine gc-sections, archives, and objects
+recipe.c.combine.pattern="{compiler.path}{compiler.c.elf.cmd}" "-L{build.path}" {compiler.c.elf.flags} {compiler.c.elf.extra_flags} -o "{build.path}/{build.project_name}.elf" {object_files} "{build.path}/{archive_file}" -lm
+
+## Create eeprom
+recipe.objcopy.eep.pattern="{compiler.objcopy.cmd}" {compiler.objcopy.eep.extra_flags} -eo "{build.path}/{build.project_name}.elf" -bo "{build.path}/{build.project_name}_0x00000.bin" {compiler.objcopy.eep.flags}
+
+## Create hex
+recipe.objcopy.hex.pattern="{compiler.elf2hex.cmd}" {compiler.elf2hex.extra_flags} -eo "{build.path}/{build.project_name}.elf" -es .irom0.text "{build.path}/{build.project_name}_0x40000.bin" {compiler.elf2hex.flags}
+
+## Compute size
+recipe.size.pattern="{compiler.path}{compiler.size.cmd}" -A "{build.path}/{build.project_name}.elf"
+recipe.size.regex=\.text\s+([0-9]+).*
+
+
+# ESP8266 Uploader/Programmers tools
+# ------------------------------
+
+tools.esptool.cmd.path={runtime.ide.path}/hardware/arduino/esp8266/tools/esptool.exe
+tools.esptool.config.path={runtime.ide.path}/hardware/arduino/esp8266/tools/esp_iot_sdk_v0.9.5/
+tools.esptool.upload.params.verbose=-v
+tools.esptool.upload.params.quiet=
+tools.esptool.upload.pattern="{cmd.path}" "" {upload.verbose} -cp {serial.port} -cb {upload.speed} -cd none -ca 0x00000 -cf {build.path}/{build.project_name}_0x00000.bin -ca 0x40000 -cf {build.path}/{build.project_name}_0x40000.bin
+
+tools.esptool.program.params.verbose=-v
+tools.esptool.program.params.quiet=-q -q
+tools.esptool.program.pattern="{cmd.path}" "-C dit is de program{config.path}" {program.verbose} -p{build.mcu} -c{protocol} {program.extra_params} "-Uflash:w:{build.path}/{build.project_name}.hex:i"
+
+							  
+tools.esptool.erase.params.verbose=-v
+tools.esptool.erase.params.quiet=
+tools.esptool.erase.pattern="{cmd.path}" "" -v -cp {serial.port} -cb {upload.speed} -cd none -ca 0x00000 -cf "{config.path}bin/boot_v1.2.bin" -ca 0x01000 -cf "{config.path}bin/at/user1.512.new.bin" -ca 0x3e000 -cf "{config.path}bin/blank.bin" -ca 0x7e000 -cf "{config.path}bin/blank.bin"
+
+tools.esptool.bootloader.params.verbose=-v
+tools.esptool.bootloader.params.quiet=
+tools.esptool.bootloader.pattern="{cmd.path}" -v
+ 
+
+# USB Default Flags
+# Default blank usb manufacturer will be filled it at compile time
+# - from numeric vendor ID, set to Unknown otherwise
+build.usb_manufacturer=
+build.usb_flags=-DUSB_VID={build.vid} -DUSB_PID={build.pid} '-DUSB_MANUFACTURER={build.usb_manufacturer}' '-DUSB_PRODUCT={build.usb_product}'
